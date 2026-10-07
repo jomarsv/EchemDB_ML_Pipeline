@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EchemDB IA</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">
+            <canvas id="brandSparkline" width="104" height="40"></canvas>
+          </div>
+          <div>
+            <h1>EchemDB IA</h1>
+            <p>Voltametria ciclica, atributos, modelos e testes de novas curvas.</p>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <label class="button primary">
+            <span aria-hidden="true">+</span>
+            <span>Importar CSVs</span>
+            <input id="csvInput" type="file" accept=".csv,.txt" multiple />
+          </label>
+          <button id="trainButton" class="button" type="button">
+            <span aria-hidden="true">Σ</span>
+            <span>Treinar IA</span>
+          </button>
+          <button id="exportStateButton" class="button" type="button">
+            <span aria-hidden="true">↓</span>
+            <span>Exportar</span>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <p id="actionError" role="alert" aria-live="polite"></p>
+        <section class="metric-grid" aria-label="Resumo">
+          <article class="metric-card">
+            <span>Entradas</span>
+            <strong id="metricEntries">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Curvas</span>
+            <strong id="metricCurves">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Materiais</span>
+            <strong id="metricMaterials">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Modelo</span>
+            <strong id="metricModel">N/A</strong>
+          </article>
+        </section>
+
+        <nav class="tabs" aria-label="Navegacao">
+          <button class="tab-button active" type="button" data-tab="dados">Dados</button>
+          <button class="tab-button" type="button" data-tab="graficos">Graficos</button>
+          <button class="tab-button" type="button" data-tab="aprendizagem">Aprendizagem</button>
+          <button class="tab-button" type="button" data-tab="teste">Testar IA</button>
+          <button class="tab-button" type="button" data-tab="exportacao">Exportar</button>
+        </nav>
+
+        <section id="tab-dados" class="tab-panel active">
+          <div class="toolbar-row">
+            <input id="tableSearch" class="input" type="search" placeholder="Filtrar tabela" />
+            <select id="materialFilter" class="input"></select>
+            <select id="datasetSelect" class="input">
+              <option value="attributes">Atributos</option>
+              <option value="indexed">Dados brutos indexados</option>
+              <option value="clean">Dados limpos</option>
+              <option value="curves">Curvas interpoladas</option>
+              <option value="models">Relatorio de modelos</option>
+              <option value="control">Controle de qualidade</option>
+            </select>
+          </div>
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>Dados coletados</h2>
+              <span id="activeDatasetLabel">0 linhas</span>
+            </div>
+            <div id="dataTable" class="table-wrap"></div>
+          </section>
+        </section>
+
+        <section id="tab-graficos" class="tab-panel">
+          <div class="graph-grid">
+            <section class="panel graph-panel">
+              <div class="panel-heading">
+                <h2>Voltamograma</h2>
+                <select id="curveSelect" class="input compact"></select>
+              </div>
+              <canvas id="curveChart" class="chart" width="840" height="360"></canvas>
+            </section>
+            <section class="panel graph-panel">
+              <div class="panel-heading">
+                <h2>Materiais</h2>
+                <span id="materialCountLabel">0 classes</span>
+              </div>
+              <canvas id="materialChart" class="chart" width="520" height="360"></canvas>
+            </section>
+            <section class="panel graph-panel wide">
+              <div class="panel-heading">
+                <h2>Espaco de atributos</h2>
+                <span>Grandeza selecionada em Aprendizagem</span>
+              </div>
+              <canvas id="scatterChart" class="chart" width="920" height="360"></canvas>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-aprendizagem" class="tab-panel">
+          <div class="learning-layout">
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>Tecnica</h2>
+                <span id="learningStatus">Sem modelo</span>
+              </div>
+              <div class="model-controls">
+                <label>
+                  Grandeza do modelo
+                  <select id="signalKindSelect" class="input">
+                    <option value="current_density">Densidade de corrente (A/m2)</option>
+                    <option value="current">Corrente (A)</option>
+                  </select>
+                </label>
+                <label>
+                  Classe alvo
+                  <select id="targetColumn" class="input"></select>
+                </label>
+                <label>
+                  Tecnica
+                  <select id="techniqueSelect" class="input">
+                    <option value="auto">Auto organizer</option>
+                    <option value="auto_balanced">Auto organizer balanceado</option>
+                    <option value="compare">Comparar tecnicas</option>
+                    <option value="knn">k-NN ponderado</option>
+                    <option value="centroid">Centroide mais proximo</option>
+                    <option value="naive_bayes">Naive Bayes Gaussiano</option>
+                    <option value="decision_tree">Arvore de decisao</option>
+                    <option value="random_forest">Floresta aleatoria</option>
+                    <option value="ensemble">Ensemble ponderado</option>
+                  </select>
+                </label>
+                <label>
+                  Vizinhos
+                  <input id="knnK" class="input" type="number" value="5" min="1" max="25" />
+                </label>
+                <label>
+                  Balanceamento
+                  <select id="balanceStrategySelect" class="input">
+                    <option value="none">Sem balanceamento</option>
+                    <option value="auto">Auto balanceamento</option>
+                    <option value="class_weight">Pesos por classe</option>
+                    <option value="oversample">Sobreamostragem</option>
+                    <option value="oversample_weight">Sobreamostragem + pesos</option>
+                  </select>
+                </label>
+              </div>
+              <dl class="model-stats">
+                <div>
+                  <dt>Treino final (desenvolvimento)</dt>
+                  <dd id="statTrain">0</dd>
+                </div>
+                <div>
+                  <dt>Validacao de desenvolvimento</dt>
+                  <dd id="statTest">0</dd>
+                </div>
+                <div>
+                  <dt>Acuracia de desenvolvimento</dt>
+                  <dd id="statAccuracy">N/A</dd>
+                </div>
+                <div>
+                  <dt>Atributos usados</dt>
+                  <dd id="statFeatures">0</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>IA aprendida</h2>
+                <span id="classCountLabel">0 classes</span>
+              </div>
+              <div id="classSummary" class="class-summary"></div>
+            </section>
+
+            <section class="panel wide">
+              <div class="panel-heading">
+                <h2>Comparacao de tecnicas</h2>
+                <span id="comparisonLabel">Aguardando treino</span>
+              </div>
+              <div id="modelComparison" class="table-wrap"></div>
+            </section>
+
+            <section class="panel wide">
+              <div class="panel-heading">
+                <h2>Matriz de confusao</h2>
+                <span id="confusionLabel">Aguardando treino</span>
+              </div>
+              <div id="confusionMatrix" class="confusion-wrap"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-teste" class="tab-panel">
+          <div class="test-layout">
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>Novos dados</h2>
+                <span id="testStatus">Nenhum teste</span>
+              </div>
+              <label class="drop-zone" for="testInput">
+                <strong>Selecionar CSV</strong>
+                <span>Aceita curva com E/j ou linha de atributos.</span>
+                <input id="testInput" type="file" accept=".csv,.txt" />
+              </label>
+              <div class="form-row">
+                <input id="newMaterial" class="input" type="text" placeholder="Material informado" />
+                <input id="newElectrolyte" class="input" type="text" placeholder="Eletrolito" />
+                <label class="field-label">
+                  Grandeza da nova curva
+                  <select id="newSignalKind" class="input">
+                    <option value="">Metadados do CSV</option>
+                    <option value="current_density">Densidade de corrente</option>
+                    <option value="current">Corrente</option>
+                  </select>
+                </label>
+                <label class="field-label">
+                  Unidade do sinal
+                  <select id="newSignalUnit" class="input">
+                    <option value="">Metadados do CSV</option>
+                    <option>A/m2</option><option>mA/cm2</option><option>uA/cm2</option>
+                    <option>A</option><option>mA</option><option>uA</option>
+                  </select>
+                </label>
+                <label class="field-label">Unidade de potencial
+                  <select id="newPotentialUnit" class="input">
+                    <option value="">Metadados do CSV</option><option>V</option><option>mV</option>
+                  </select>
+                </label>
+                <input id="newSource" class="input" type="text" placeholder="DOI ou grupo experimental independente" aria-label="Fonte da nova curva" />
+              </div>
+              <button id="runTestButton" class="button primary full" type="button">Testar com a IA</button>
+              <button id="compareExternalButton" class="button full" type="button">Avaliar modelos congelados</button>
+            </section>
+
+            <section class="panel wide">
+              <div class="panel-heading">
+                <h2>Predicoes</h2>
+                <button id="exportTestsButton" class="button small" type="button">Baixar CSV</button>
+              </div>
+              <div id="predictionTable" class="table-wrap"></div>
+            </section>
+
+            <section class="panel wide">
+              <div class="panel-heading">
+                <h2>Comparacao externa</h2>
+                <span id="externalComparisonLabel">Aguardando teste</span>
+              </div>
+              <div id="externalComparisonTable" class="table-wrap"></div>
+            </section>
+
+            <section class="panel wide">
+              <div class="panel-heading">
+                <h2>Desempenho por classe</h2>
+                <span id="externalClassLabel">Aguardando teste</span>
+              </div>
+              <div id="externalClassTable" class="table-wrap"></div>
+            </section>
+
+            <section class="panel wide">
+              <div class="panel-heading">
+                <h2>Diagnostico</h2>
+                <span id="diagnosticLabel">Aguardando teste</span>
+              </div>
+              <div id="diagnosticTable" class="table-wrap"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-exportacao" class="tab-panel">
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>Pacote de uso</h2>
+              <span id="exportSummary">0 itens</span>
+            </div>
+            <div class="export-grid">
+              <button id="downloadModelButton" class="button primary" type="button">Baixar modelo JSON</button>
+              <button id="downloadReportButton" class="button primary" type="button">Baixar relatorio MD</button>
+              <button id="downloadAttributesButton" class="button" type="button">Baixar atributos CSV</button>
+              <button id="downloadTestsButton" class="button" type="button">Baixar testes CSV</button>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="./science.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
