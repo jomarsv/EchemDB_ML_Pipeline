@@ -166,6 +166,11 @@ mas ainda nao foi incorporada ao treinamento.
 
 ## Premissas
 
+## Citation
+
+Jomar Sales Vasconcelos. *EchemDB ML Pipeline: A reproducible workflow for cyclic voltammetry data curation and machine-learning analysis*. Zenodo, version 0.1.1. https://doi.org/10.5281/zenodo.23264072
+
+DOI for all versions: https://doi.org/10.5281/zenodo.23264071
 - O pipeline detecta colunas de potencial, corrente ou densidade de corrente por nomes comuns como `E`, `potential`, `voltage`, `i`, `current`, `j` e `current density`.
 - Conversões de unidade só são feitas quando a unidade é reconhecida de forma simples, como `mV -> V`, `uA -> A` e `mA -> A`.
 - Unidades ausentes, desconhecidas ou incompativeis excluem a curva do treino; corrente e densidade nao sao misturadas.
