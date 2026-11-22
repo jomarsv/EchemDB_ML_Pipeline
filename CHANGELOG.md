@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 - 2026-11-22
+
+- Adds standard Python packaging and command-line entry points for the pipeline and local browser app.
+- Replaces the repository README with English, platform-neutral installation and usage instructions.
+- Adds cross-platform CI for Python and JavaScript tests on Linux, macOS, and Windows.
+- Documents the descriptor contract and adds reference-trace and peak-sensitivity tests.
+- Documents the feature API and adds a reproducible synthetic unit-error impact example.
+- Clarifies the exploratory scope of browser classifiers and improves review-workflow labels.
+
 ## 0.1.0 - 2026-10-07
 
 Initial reviewed software release.

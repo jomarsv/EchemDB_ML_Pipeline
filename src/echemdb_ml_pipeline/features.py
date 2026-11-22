@@ -234,7 +234,13 @@ def _interpolate_curve(
     return row
 
 
-def _peak_features(x: np.ndarray, y: np.ndarray) -> dict[str, Any]:
+def _peak_features(
+    x: np.ndarray,
+    y: np.ndarray,
+    *,
+    smoothing_window: int | None = None,
+    prominence_fraction: float = 0.15,
+) -> dict[str, Any]:
     result: dict[str, Any] = {
         "E_pico_anodico": np.nan,
         "j_pico_anodico": np.nan,
@@ -249,9 +255,11 @@ def _peak_features(x: np.ndarray, y: np.ndarray) -> dict[str, Any]:
     peaks = {}
     for bx, by in branches:
         mode = "max" if bx[-1] > bx[0] else "min"
-        smooth = _moving_average(by, max(5, min(21, len(by) // 25 * 2 + 1)))
+        window = smoothing_window if smoothing_window is not None else max(5, min(21, len(by) // 25 * 2 + 1))
+        smooth = _moving_average(by, window)
         maxima, minima = _turning_points(smooth)
-        idx = _select_peak(maxima if mode == "max" else minima, by, mode, max(float(np.std(by)) * 0.15, 1e-15))
+        threshold = max(float(np.std(by)) * prominence_fraction, 1e-15)
+        idx = _select_peak(maxima if mode == "max" else minima, by, mode, threshold)
         if idx is None:
             continue
         name = "anodico" if mode == "max" else "catodico"

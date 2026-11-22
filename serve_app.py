@@ -6,6 +6,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import sys
+import sysconfig
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent
@@ -44,10 +45,24 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
 
-if __name__ == "__main__":
+def app_directory() -> Path:
+    source_app = ROOT / "app"
+    if source_app.is_dir():
+        return source_app
+    installed_app = Path(sysconfig.get_path("data")) / "share" / "echemdb-ml-pipeline" / "app"
+    if installed_app.is_dir():
+        return installed_app
+    raise FileNotFoundError("The EchemDB browser assets are missing from this installation.")
+
+
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), partial(Handler, directory=str(ROOT / "app")))
+    server = ThreadingHTTPServer(("127.0.0.1", args.port), partial(Handler, directory=str(app_directory())))
     print(f"EchemDB: http://127.0.0.1:{args.port}/", flush=True)
     server.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

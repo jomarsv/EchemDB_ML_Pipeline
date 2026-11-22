@@ -16,6 +16,7 @@ const state = {
   tests: [],
   pendingTestRows: [],
   pendingTestName: "",
+  selectedReviewRow: null,
 };
 
 const DATASET_LABELS = {
@@ -68,6 +69,26 @@ function bindEvents() {
   document.getElementById("materialFilter").addEventListener("change", renderDataTable);
   document.getElementById("datasetSelect").addEventListener("change", renderDataTable);
   document.getElementById("curveSelect").addEventListener("change", renderCurveChart);
+  document.getElementById("exportReviewButton").addEventListener("click", exportSelectedReview);
+  document.getElementById("dataTable").addEventListener("click", (event) => {
+    const row = event.target.closest("tr[data-row-index]");
+    if (!row) return;
+    const datasetKey = document.getElementById("datasetSelect").value;
+    const search = document.getElementById("tableSearch").value.toLowerCase();
+    const material = document.getElementById("materialFilter").value;
+    const visibleRows = getDataset(datasetKey).filter((item) => {
+      const materialValue = item.material_eletrodo || item.material || "";
+      return (!material || materialValue === material) && (!search || Object.values(item).some((value) => String(value).toLowerCase().includes(search)));
+    }).slice(0, 400);
+    selectReviewRow(visibleRows[Number(row.dataset.rowIndex)]);
+  });
+  document.getElementById("dataTable").addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const row = event.target.closest("tr[data-row-index]");
+    if (!row) return;
+    event.preventDefault();
+    row.click();
+  });
   for (const id of ["targetColumn", "techniqueSelect", "knnK", "balanceStrategySelect", "signalKindSelect"]) {
     document.getElementById(id).addEventListener("change", safeAction(trainModel));
   }
@@ -253,6 +274,31 @@ function renderDataTable() {
   });
   document.getElementById("activeDatasetLabel").textContent = `${rows.length} linhas`;
   document.getElementById("dataTable").innerHTML = renderTable(rows.slice(0, 400));
+}
+
+function selectReviewRow(row) {
+  if (!row) return;
+  state.selectedReviewRow = { ...row };
+  const id = row.id_entrada;
+  const cleanRows = state.clean.filter((item) => item.id_entrada === id);
+  const indexed = state.indexed.find((item) => item.id_entrada === id) || {};
+  const metadata = { ...indexed, ...row };
+  const fields = Object.entries(metadata).filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "");
+  const flag = row.outlier_flag === true || String(row.outlier_flag).toLowerCase() === "true" || Boolean(row.motivo_exclusao || row.exclusion || row.decision);
+  const flagText = row.decision || row.motivo_exclusao || row.exclusion || (flag ? "Sinalizado para revisao" : "Sem sinalizacao explicita");
+  document.getElementById("reviewRecord").innerHTML = `<p class="review-flag ${flag ? "flagged" : ""}">${escapeHtml(flagText)}</p><p><strong>${escapeHtml(id || "Registro sem ID")}</strong> · ${cleanRows.length} pontos de curva disponiveis</p><dl>${fields.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(formatCell(value))}</dd>`).join("")}</dl>`;
+  document.getElementById("exportReviewButton").disabled = false;
+  const curveSelect = document.getElementById("curveSelect");
+  if ([...curveSelect.options].some((option) => option.value === id)) {
+    curveSelect.value = id;
+    renderCurveChart();
+  }
+}
+
+function exportSelectedReview() {
+  if (!state.selectedReviewRow) return;
+  const row = { ...state.selectedReviewRow, nota_revisor: document.getElementById("reviewNote").value.trim() };
+  downloadCsv(`revisao_${row.id_entrada || "registro"}.csv`, [row]);
 }
 
 function renderCurveChart() {
@@ -1445,7 +1491,7 @@ function renderTable(rows) {
   if (!rows.length) return `<div class="empty-state">Sem dados carregados.</div>`;
   const columns = Object.keys(rows[0]).slice(0, 28);
   const body = rows
-    .map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(formatCell(row[column]))}</td>`).join("")}</tr>`)
+    .map((row, index) => `<tr data-row-index="${index}" tabindex="0" aria-label="Selecionar registro ${escapeHtml(row.id_entrada || index + 1)}">${columns.map((column) => `<td>${escapeHtml(formatCell(row[column]))}</td>`).join("")}</tr>`)
     .join("");
   return `<table><thead><tr>${columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table>`;
 }

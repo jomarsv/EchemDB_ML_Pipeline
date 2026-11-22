@@ -13,7 +13,7 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 import numpy as np
 import pandas as pd
 from echemdb_ml_pipeline.features import (
-    FEATURE_VERSION, NUMERIC_FEATURES, _convert_signal, _unit_for_column,
+    FEATURE_COLUMNS, FEATURE_VERSION, NUMERIC_FEATURES, _convert_signal, _unit_for_column,
     _derivative_features, _half_width, _peak_features, build_feature_outputs,
 )
 from echemdb_ml_pipeline.schema import CurveRecord
@@ -127,10 +127,25 @@ class ScientificIntegrity(unittest.TestCase):
             def post(payload):
                 return urlopen(Request(url, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}), timeout=10)
             with post(upload_payload()) as response:
-                self.assertEqual(json.load(response)["rows"], extract_uploaded_curves(**upload_payload()))
+                body = json.load(response)
+                self.assertEqual(set(body), {"rows"})
+                self.assertEqual(body["rows"], extract_uploaded_curves(**upload_payload()))
+                row = body["rows"][0]
+                self.assertEqual(list(row), FEATURE_COLUMNS)
+                self.assertEqual(row["versao_atributos"], FEATURE_VERSION)
+                self.assertEqual(row["unidade_potencial_usada"], "V")
+                self.assertEqual(row["unidade_sinal_usada"], "A/m2")
+                self.assertEqual(row["status"], "valido")
+                self.assertEqual(len(NUMERIC_FEATURES), 23)
             with self.assertRaises(HTTPError) as error:
                 post({"rows": upload_payload()["rows"]})
             self.assertEqual(error.exception.code, 400)
+            bad_units = upload_payload()
+            bad_units["defaults"]["unidade_sinal_usada"] = "mA"
+            with self.assertRaises(HTTPError) as error:
+                post(bad_units)
+            self.assertEqual(error.exception.code, 400)
+            self.assertIn("current_density", json.load(error.exception)["error"])
         finally:
             server.shutdown()
             server.server_close()

@@ -1,0 +1,16 @@
+{
+  "scenario": "controlled synthetic fault injection",
+  "description": "The point values are current density in mA/cm2, but the initial metadata deliberately declares mA, a unit of current.",
+  "incorrect_defaults": {
+    "tipo_sinal": "current_density",
+    "unidade_potencial_usada": "V",
+    "unidade_sinal_usada": "mA",
+    "grupo_origem": "synthetic-fault-injection"
+  },
+  "corrected_defaults": {
+    "tipo_sinal": "current_density",
+    "unidade_potencial_usada": "V",
+    "unidade_sinal_usada": "mA/cm2",
+    "grupo_origem": "synthetic-fault-injection"
+  }
+}

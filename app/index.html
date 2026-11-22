@@ -85,6 +85,16 @@
             </div>
             <div id="dataTable" class="table-wrap"></div>
           </section>
+          <section class="panel review-panel" aria-labelledby="reviewHeading">
+            <div class="panel-heading">
+              <h2 id="reviewHeading">Revisao do registro selecionado</h2>
+              <button id="exportReviewButton" class="button small" type="button" disabled>Exportar revisao</button>
+            </div>
+            <div id="reviewRecord" class="review-record" aria-live="polite">Selecione uma linha da tabela para inspecionar metadados, sinalizacao e curva.</div>
+            <label class="field-label">Nota para acompanhamento
+              <textarea id="reviewNote" class="input review-note" rows="2" placeholder="Registre a verificacao ou providencia pendente"></textarea>
+            </label>
+          </section>
         </section>
 
         <section id="tab-graficos" class="tab-panel">
@@ -161,6 +171,7 @@
                   </select>
                 </label>
               </div>
+              <p class="model-notice" role="note"><strong>Modelos do navegador (JavaScript): exploratórios.</strong> Os resultados servem para inspeção interativa e não equivalem à validação agrupada aninhada em Python nem demonstram generalização.</p>
               <dl class="model-stats">
                 <div>
                   <dt>Treino final (desenvolvimento)</dt>

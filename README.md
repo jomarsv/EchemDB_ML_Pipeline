@@ -1,178 +1,88 @@
 # EchemDB ML Pipeline
 
-**Version:** 0.1.1 ([changelog](CHANGELOG.md))  
-**License:** MIT ([LICENSE](LICENSE))
+- **Version:** 0.1.2
+- **License:** MIT ([LICENSE](LICENSE))
+- **Python:** 3.10 or later
+- **Platforms:** Linux, macOS, and Windows
 
-Protótipo para transformar dados públicos do EchemDB, especialmente voltamogramas cíclicos, em tabelas de atributos, vetores interpolados, modelos exploratórios e um relatório técnico.
+EchemDB ML Pipeline imports cyclic-voltammetry records from CSV, JSON, or EchemDB-style data packages; checks declared units and signal modality; computes versioned descriptors; and supports interactive review and exploratory analysis. It includes a Python command-line pipeline, a local browser application, a feature-extraction API, and a separate source-grouped nested-validation workflow.
 
-O projeto foi gerado a partir do prompt original em `prompt_cortex_echemdb_aprendizagem.txt`, com duas decisões práticas:
+The software does not download or invent input data. Users provide local files or an exported EchemDB data package. Current and current density remain distinct, potential references are not silently harmonized, and unknown units are rejected rather than guessed. Browser classifiers are exploratory and do not establish generalization; see the limitations and validation notes below.
 
-- não baixa nem inventa dados automaticamente;
-- trabalha sobre uma cópia local/exportada do EchemDB ou sobre arquivos CSV/JSON/DataPackage fornecidos pelo usuário.
+## Install
 
-## Protocolo cientifico
+Install from a source checkout with Python 3.10 or later:
 
-A aplicacao proposta e a recuperacao assistida de metadados, com auditoria de
-consistencia e revisao humana. O [protocolo de aplicacao e avaliacao](docs/protocolo_aplicacao_avaliacao_v1.md)
-define tarefas, metricas e pendencias anteriores a validacao aninhada.
-Top-3 e abstencao validada sao requisitos planejados, nao funcionalidades ja demonstradas.
-
-Etapa 3: [validacao aninhada por fontes, piloto restrito](docs/etapa3_validacao_aninhada_piloto.md).
-O motor Python foi executado em Ag/Au com referencia SCE declarada, separadamente do
-app e sem reutilizar seu teste de 67 curvas. Nao e validacao dos 12 materiais.
-
-## Estrutura
-
-```text
-echemdb-ml-pipeline/
-  app/index.html
-  app/app.js
-  app/styles.css
-  docs/revisao_prompt.md
-  prompts/prompt_cortex_echemdb_ml_revisado.md
-  run_pipeline.py
-  requirements.txt
-  src/echemdb_ml_pipeline/
-```
-
-## Instalação
-
-```powershell
-cd C:\Users\jomar\OneDrive\Documents\Playground\echemdb-ml-pipeline
+```bash
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
 ```
 
-## Uso
+Activate the environment:
 
-**Protocolo cientifico v2:** use os arquivos em `outputs/scientific_v2`, nao os CSVs
-historicos diretamente em `outputs`. Consulte [integridade cientifica](docs/integridade_cientifica_v2.md)
-para unidades, descritores, isolamento e limitacoes. Os resultados antigos precisam ser recalculados.
+```bash
+# Linux or macOS
+source .venv/bin/activate
 
-Para regenerar a copia local atual sem ajustar modelos exploratorios:
-
-```powershell
-.\.venv\Scripts\python.exe run_pipeline.py --input ..\echemdb-data-0.8.4\data\generated --output outputs\scientific_v2 --skip-models
-.\.venv\Scripts\python.exe scripts\create_test_split.py
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
 ```
 
-Informe uma pasta ou arquivo contendo dados exportados do EchemDB:
+Install the application and test tools:
 
-```powershell
-python run_pipeline.py --input C:\caminho\para\electrochemistry-data --output outputs
+```bash
+python -m pip install --upgrade pip
+python -m pip install -e ".[test]"
 ```
 
-Parâmetros úteis:
+The project is also configured for standard wheel/sdist builds with setuptools. The `echemdb-ml-pipeline` and `echemdb-web` commands are installed by this package.
 
-```powershell
-python run_pipeline.py --input dados --output outputs --n-points 256 --min-points 20 --normalization max_abs
+## Run the pipeline
+
+Use a local directory or file containing CSV/JSON records:
+
+```bash
+echemdb-ml-pipeline --input /path/to/echemdb-export --output outputs --skip-models
 ```
 
-## Saídas
+On Windows, use a quoted path such as `--input "D:\data\echemdb-export"`. Omit `--skip-models` to run the available exploratory analyses. Optional settings include:
 
-O pipeline tenta gerar:
-
-```text
-outputs/dados_brutos_indexados.csv
-outputs/dados_limpos.csv
-outputs/curvas_voltamogramas_plot.csv
-outputs/atributos_voltamogramas.csv
-outputs/curvas_interpoladas.csv
-outputs/controle_qualidade.csv
-outputs/relatorio_modelos.csv
-outputs/matriz_confusao.png
-outputs/pca_voltamogramas.png
-outputs/clusters_voltamogramas.png
-outputs/importancia_atributos.png
-outputs/relatorio_tecnico.md
+```bash
+echemdb-ml-pipeline --input data --output outputs --n-points 256 --min-points 20 --normalization max_abs
 ```
 
-Algumas saídas só aparecem se houver dados suficientes e dependências instaladas. Por exemplo, a matriz de confusão exige pelo menos duas classes com amostras suficientes para treino e teste.
+The pipeline writes indexed and cleaned data, quality-control results, feature tables, interpolated curves, reports, and (when enough data are available) exploratory model summaries and plots. Output paths are relative to the current working directory unless an absolute path is provided.
 
-## App local
+## Run the local browser application
 
-Para rodar a interface local:
-
-```powershell
-cd C:\Users\jomar\OneDrive\Documents\Playground\echemdb-ml-pipeline
-.\.venv\Scripts\python.exe serve_app.py --port 8765
+```bash
+echemdb-web --port 8765
 ```
 
-Depois abra:
+Open <http://127.0.0.1:8765/>. The server binds to loopback only and is intended for local use; it is not an authenticated or production web service. Keep it off public network interfaces. Curve uploads use the local `/api/features` endpoint so the browser and batch pipeline share the Python feature extractor. Opening `app/index.html` directly does not provide this API.
 
-```text
-http://127.0.0.1:8765/
+The request/response schema, required and optional metadata, unit spellings, limits, and error behavior are specified in [docs/API.md](docs/API.md).
+
+The deliberate unit-metadata fault-injection example, its limitations, and reproduction steps are described in [docs/impact-example.md](docs/impact-example.md).
+
+Import pipeline outputs such as `outputs/atributos_voltamogramas.csv`, `outputs/dados_limpos.csv`, and `outputs/controle_qualidade.csv`. Browser models include weighted k-nearest neighbors, nearest centroid, Gaussian naive Bayes, decision tree, random forest, and a weighted ensemble. Their displayed validation is an exploratory, source-disjoint development split; it is not the DOI-grouped nested Python pilot and must not be interpreted as confirmatory evidence.
+
+## Tests and continuous integration
+
+The Python test suite uses `pytest`; browser integrity tests use the Node.js built-in test runner (Node 20 or later):
+
+```bash
+python -m pytest -q
+node --test tests/scientific-integrity.test.cjs
 ```
 
-O servidor acima e necessario para extrair atributos de curvas novas usando o mesmo
-codigo Python do pipeline. Abrir HTML diretamente ou usar `http.server` nao oferece essa API.
+GitHub Actions runs both suites on Linux, macOS, and Windows with Python 3.10 and 3.12. Tests that require generated local pilot outputs are skipped when those optional artifacts are absent.
 
-```text
-C:\Users\jomar\OneDrive\Documents\Playground\echemdb-ml-pipeline\app\index.html
-```
+## Reproducibility and scope
 
-No app, importe os CSVs gerados pelo pipeline, principalmente:
+The DOI-grouped Ag/Au case study is a small exploratory pilot, not a confirmatory estimate of performance on new materials or publications. It uses a separately documented environment and source-grouped nested validation. Its inputs, manifests, fold assignments, model selections, and predictions are archived in Supplementary Material S1 v3 at <https://doi.org/10.5281/zenodo.24438074>. The software release and source tag are cited below; check the manuscript's reproduction table for exact commands and dependencies.
 
-```text
-outputs/atributos_voltamogramas.csv
-outputs/curvas_voltamogramas_plot.csv
-outputs/curvas_interpoladas.csv
-outputs/controle_qualidade.csv
-outputs/relatorio_modelos.csv
-```
-
-O app permite:
-
-- visualizar os dados coletados;
-- desenhar voltamogramas físicos como densidade de corrente/corrente em função do potencial, `j(E)` ou `i(E)`;
-- treinar e comparar técnicas de IA no navegador, incluindo k-NN, centróide mais próximo, Naive Bayes Gaussiano, árvore de decisão, floresta aleatória e ensemble ponderado;
-- usar o modo `Auto organizer`, que avalia técnicas individuais e combinações por ensemble, escolhendo automaticamente a melhor opção pela acurácia de validação;
-- usar o modo `Auto organizer balanceado`, que prioriza desempenho médio por classe quando há classes com poucas amostras;
-- avaliar modelos congelados em CSV rotulado independente, sem escolher modelos nem pesos com os rotulos externos;
-- escolher acuracia ou acuracia balanceada somente no desenvolvimento e revisar recall, precisao e F1 por classe;
-- treinar com `Auto balanceamento`, `Pesos por classe`, `Sobreamostragem` ou `Sobreamostragem + pesos` para testar estratégias contra desbalanceamento;
-- gerar diagnóstico automático de classes críticas e próximos passos de coleta/revisão;
-- ver classes aprendidas, acurácia e matriz de confusão;
-- carregar um novo CSV de curva `E,j` ou de atributos para testar a IA;
-- exportar o estado do modelo, as predições e um relatório do experimento em Markdown.
-
-### Comparar com teste externo
-
-Para comparar o `Auto organizer` contra o k-NN anterior usando um conjunto separado:
-
-1. Importe `outputs\scientific_v2\testes\atributos_treino_sem_teste_current_density.csv` em `Importar CSVs`.
-2. Em `Aprendizagem`, mantenha `Densidade de corrente (A/m2)` e `classe_alvo`.
-3. Selecione `Auto organizer balanceado` e o balanceamento desejado, antes de observar o teste.
-4. Clique em `Treinar IA`. A selecao usa validacao por fonte dentro do desenvolvimento; depois os modelos sao reajustados no desenvolvimento inteiro e congelados.
-5. Em `Testar IA`, selecione `outputs\scientific_v2\testes\amostras_teste_atributos_current_density.csv`.
-6. Clique em `Avaliar modelos congelados`. A primeira linha continua sendo o modelo selecionado no desenvolvimento, mesmo que outro obtenha maior acuracia externa.
-7. Use `Testar com a IA` para gerar predicoes individuais. Consulte tambem o desempenho por classe e o diagnostico.
-8. Exporte o modelo e o relatorio. Nao ajuste configuracoes a partir destes resultados e depois apresente o mesmo teste como independente.
-
-Para corrente, use os arquivos com sufixo `_current` e a grandeza `Corrente (A)`.
-O teste atual dessa modalidade tem somente uma curva: nao sustenta uma estimativa de desempenho.
-Os CSVs de atributos antigos sao rejeitados. Para graficos, importe `outputs/scientific_v2/dados_limpos.csv`.
-
-## Curadoria de referencias e fontes
-
-A auditoria versionada de referencias de potencial, duplicatas exatas e fontes
-raras esta em [Curadoria cientifica](docs/curadoria_referencias_duplicatas_fontes.md).
-As exportacoes `outputs/scientific_curation_v1/*_native.csv` preservam escalas
-nativas distintas: nao importar como uma unica coorte harmonizada no app.
- A comparacao com a release oficial 0.9.2 esta em
-[Comparacao da release 0.9.2](docs/comparacao_release_092.md); ela foi auditada,
-mas ainda nao foi incorporada ao treinamento.
-
-## Premissas
-
-- O pipeline detecta colunas de potencial, corrente ou densidade de corrente por nomes comuns como `E`, `potential`, `voltage`, `i`, `current`, `j` e `current density`.
-- Conversões de unidade só são feitas quando a unidade é reconhecida de forma simples, como `mV -> V`, `uA -> A` e `mA -> A`.
-- Unidades ausentes, desconhecidas ou incompativeis excluem a curva do treino; corrente e densidade nao sao misturadas.
-- A interpolação principal usa a ordem de aquisição da curva, não apenas o eixo de potencial, para preservar o laço de voltametria cíclica.
+The descriptor contract is versioned as `echemdb-features-v2`. Descriptor definitions, units, missing-value rules, and synthetic peak-sensitivity tests are described in the manuscript and `tests/test_descriptor_reference_traces.py`.
 
 ## Citation
 
-Jomar Sales Vasconcelos. *EchemDB ML Pipeline: A reproducible workflow for cyclic voltammetry data curation and machine-learning analysis*. Zenodo, version 0.1.1. https://doi.org/10.5281/zenodo.23264072
-
-DOI for all versions: https://doi.org/10.5281/zenodo.23264071
+Jomar Sales Vasconcelos, Nazaré do Socorro L. S. Vasconcelos, Arthur Aprígio de Melo, and Antonio Marcus N. Lima. *EchemDB ML Pipeline: A reproducible workflow for cyclic voltammetry data curation and machine-learning analysis*, version 0.1.2, Zenodo (2026). The version-specific DOI will be added after the Zenodo archive is published. Concept DOI: <https://doi.org/10.5281/zenodo.23264071>.
